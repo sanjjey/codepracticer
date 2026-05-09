@@ -12,7 +12,7 @@ export interface Judge0Response {
   };
 }
 
-export async function executeCode(sourceCode: string, language: string, stdin: string): Promise<Judge0Response> {
+export async function executeCode(sourceCode: string, language: string, stdin: string, customApiKey?: string): Promise<Judge0Response> {
   const url = `https://${process.env.JUDGE0_RAPIDAPI_HOST}/submissions?base64_encoded=true&wait=true`;
   
   // Map our language strings to Judge0 IDs
@@ -24,10 +24,12 @@ export async function executeCode(sourceCode: string, language: string, stdin: s
     "cpp": 54
   };
 
+  const apiKey = customApiKey || process.env.JUDGE0_RAPIDAPI_KEY!;
+
   const options = {
     method: 'POST',
     headers: {
-      'x-rapidapi-key': process.env.JUDGE0_RAPIDAPI_KEY!,
+      'x-rapidapi-key': apiKey,
       'x-rapidapi-host': process.env.JUDGE0_RAPIDAPI_HOST!,
       'Content-Type': 'application/json'
     },

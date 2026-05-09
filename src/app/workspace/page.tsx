@@ -21,6 +21,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Problem } from "@/lib/groq";
 import { supabase } from "@/lib/supabase";
+import { apiFetch } from "@/lib/apiFetch";
 
 export default function WorkspacePage() {
   const [problem, setProblem] = useState<Problem | null>(null);
@@ -102,7 +103,7 @@ export default function WorkspacePage() {
   const handleViewSolution = async () => {
     if (isLocked) return;
     try {
-      const response = await fetch("/api/reveal-solution", {
+      const response = await apiFetch("/api/reveal-solution", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ problemId }),
@@ -125,7 +126,7 @@ export default function WorkspacePage() {
     setActiveTab("results");
     
     try {
-      const response = await fetch("/api/run-code", {
+      const response = await apiFetch("/api/run-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

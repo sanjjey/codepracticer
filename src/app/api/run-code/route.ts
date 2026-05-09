@@ -11,6 +11,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing source code or test cases" }, { status: 400 });
     }
 
+    const userJudge0Key = req.headers.get("x-user-judge0-key") || undefined;
+
     const results = [];
     const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
@@ -19,7 +21,7 @@ export async function POST(req: NextRequest) {
       if (i > 0) await delay(1200); // Respect Judge0 RapidAPI rate limit (1 req/sec)
       
       try {
-        const result = await executeCode(sourceCode, language, testCase.input);
+        const result = await executeCode(sourceCode, language, testCase.input, userJudge0Key);
         
         // Judge0 status id 3 is "Accepted"
         const isCompilationError = result.status.id === 6;

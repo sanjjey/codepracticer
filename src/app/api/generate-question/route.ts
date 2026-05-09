@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import Groq from "groq-sdk";
 import { groq, CHAT_MODELS, Problem } from "@/lib/groq";
 import { supabase } from "@/lib/supabase";
 
@@ -67,7 +68,10 @@ export async function POST(req: NextRequest) {
       }
     `;
 
-    const completion = await groq.chat.completions.create({
+    const userGroqKey = req.headers.get("x-user-groq-key");
+    const groqClient = userGroqKey ? new Groq({ apiKey: userGroqKey }) : groq;
+
+    const completion = await groqClient.chat.completions.create({
       messages: [
         {
           role: "system",
