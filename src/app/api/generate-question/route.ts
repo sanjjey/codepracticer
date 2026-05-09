@@ -138,6 +138,13 @@ export async function POST(req: NextRequest) {
     );
     problem.testCases = verifiedTestCases;
 
+    // --- SYNC EXAMPLE WITH VERIFIED DATA ---
+    // Ensure the visible example matches the verified logic
+    if (problem.testCases.length > 0) {
+      problem.inputExample = problem.testCases[0].input;
+      problem.outputExample = problem.testCases[0].expectedOutput;
+    }
+
     // Calculate lockout duration in minutes
     const durationMins = problem.difficulty === "Hard" ? 30 : problem.difficulty === "Medium" ? 15 : 5;
     const unlockAt = new Date(Date.now() + durationMins * 60 * 1000).toISOString();
