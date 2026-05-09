@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Groq from "groq-sdk";
 import { groq, CHAT_MODELS, Problem } from "@/lib/groq";
 import { supabase } from "@/lib/supabase";
+import { smartExecute } from "@/lib/execution";
 
 export async function POST(req: NextRequest) {
   try {
@@ -93,6 +94,31 @@ export async function POST(req: NextRequest) {
 
     const problem: Problem = JSON.parse(responseContent);
 
+    // --- AUTO-VERIFICATION STEP ---
+    // Use the generated optimal solution to verify/fix test case outputs
+    const userJudge0Key = req.headers.get("x-user-judge0-key") || undefined;
+    
+    // We only verify the first few test cases to keep latency low, or all if preferred
+    const verifiedTestCases = await Promise.all(
+      problem.testCases.map(async (tc) => {
+        try {
+          const { stdout, isError } = await smartExecute(
+            problem.optimalSolution,
+            "python", // Most AI solutions are Python by default in our prompt, or we can detect
+            tc.input,
+            userJudge0Key
+          );
+          if (!isError && stdout) {
+            return { ...tc, expectedOutput: stdout };
+          }
+        } catch (e) {
+          console.warn("Verification failed for a test case, using AI default", e);
+        }
+        return tc;
+      })
+    );
+    problem.testCases = verifiedTestCases;
+
     // Calculate lockout duration in minutes
     const durationMins = problem.difficulty === "Hard" ? 30 : problem.difficulty === "Medium" ? 15 : 5;
     const unlockAt = new Date(Date.now() + durationMins * 60 * 1000).toISOString();
@@ -109,7 +135,7 @@ export async function POST(req: NextRequest) {
           difficulty: problem.difficulty,
           constraints: problem.constraints,
           input_example: problem.inputExample,
-          output_example: problem.outputExample,
+          output_example: problem.testCases[0]?.expectedOutput || problem.outputExample,
           explanation: problem.explanation,
           optimal_solution: problem.optimalSolution,
           brute_force_solution: problem.bruteForceSolution,
