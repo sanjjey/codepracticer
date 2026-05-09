@@ -12,8 +12,12 @@ export async function POST(req: NextRequest) {
     }
 
     const results = [];
+    const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
-    for (const testCase of testCases) {
+    for (let i = 0; i < testCases.length; i++) {
+      const testCase = testCases[i];
+      if (i > 0) await delay(1200); // Respect Judge0 RapidAPI rate limit (1 req/sec)
+      
       try {
         const result = await executeCode(sourceCode, language, testCase.input);
         
