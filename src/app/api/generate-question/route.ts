@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       2. Provide detailed constraints.
       3. Generate ${testCaseCount} test cases in this clean CodeChef format.
       4. Determine difficulty (Easy, Medium, or Hard).
-      5. Generate both a Brute Force solution and an Optimal solution.
+      5. Generate both a Brute Force solution and an Optimal solution (BOTH MUST BE IN PYTHON).
       6. Provide boilerplates that read input using stdin in the target language.
 
       OUTPUT FORMAT: You MUST return a JSON object strictly following this structure:
@@ -55,8 +55,8 @@ export async function POST(req: NextRequest) {
         "outputExample": "0 4",
         "explanation": "Brief logical explanation",
         "difficulty": "Easy | Medium | Hard",
-        "optimalSolution": "code string",
-        "bruteForceSolution": "code string",
+        "optimalSolution": "python code string",
+        "bruteForceSolution": "python code string",
         "boilerplates": {
           "python": "import sys\\ninput = sys.stdin.read().split()\\n# Your code here...",
           "javascript": "const fs = require('fs');\\nconst input = fs.readFileSync(0, 'utf8').split(/\\s+/);\\n// Your code here...",
