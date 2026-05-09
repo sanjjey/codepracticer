@@ -46,6 +46,12 @@ export async function POST(req: NextRequest) {
       5. Generate both a Brute Force solution and an Optimal solution (BOTH MUST BE IN PYTHON).
       6. Provide boilerplates that read input using stdin in the target language.
 
+      LOGICAL INTEGRITY CHECK (CRITICAL):
+      Before generating the JSON, perform a "Chain of Thought" verification:
+      - Explicitly identify the core game mechanics (e.g., Turn-based? Connected components? Greedy strategy?).
+      - For Test Case 1, manually trace the steps to ensure the expectedOutput is 100% correct.
+      - Ensure the optimalSolution correctly handles edge cases (empty input, all 0s, all 1s).
+
       OUTPUT FORMAT: You MUST return a JSON object strictly following this structure:
       {
         "title": "Problem Title",
