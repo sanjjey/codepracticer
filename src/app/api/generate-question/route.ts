@@ -12,7 +12,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Input is required" }, { status: 400 });
     }
 
-    let systemContext = "You are a world-class Competitive Programming coach.";
+    const systemContext = `
+      You are an Expert Competitive Programming Problem Setter for platforms like LeetCode, Codeforces, and CodeChef.
+      Your mission is to transform raw ideas into rigorous, professional, and logically sound programming challenges.
+
+      CORE STANDARDS:
+      1. PROFESSIONAL FRAMING: Use clear, academic, yet engaging language. Use Markdown for structured descriptions (## Problem Description, ### Constraints, etc.).
+      2. RIGOROUS TEST CASES: Every problem MUST include:
+         - Standard cases (Average inputs).
+         - Boundary cases (Minimum/Maximum constraints like N=0, N=1, N=10^5).
+         - Edge cases (Negative numbers, duplicates, empty strings, large integers).
+      3. LOGICAL SOUNDNESS: You must ensure the game mechanics are mathematically consistent.
+      4. BOILERPLATE QUALITY: Boilerplates must be high-performance and handle standard input (stdin) correctly for each target language.
+      5. JSON STABILITY: Always output valid JSON that strictly follows the requested schema.
+    `.trim();
     let mainTask = `Frame the following raw input into a professional Competitive Programming challenge: "${input}"`;
 
     if (isCombined) {
@@ -82,7 +95,7 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: "system",
-          content: "You are a helpful assistant that outputs only valid JSON.",
+          content: `${systemContext}\n\nYou MUST output only valid JSON.`,
         },
         {
           role: "user",
