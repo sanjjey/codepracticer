@@ -36,6 +36,8 @@ export default function WorkspacePage() {
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [problemList, setProblemList] = useState<any[]>([]);
+  const [executionResults, setExecutionResults] = useState<any[]>([]);
+  const [isExecuting, setIsExecuting] = useState(false);
 
   const LANGUAGES_MAP = [
     { label: "TypeScript", value: "typescript", monaco: "typescript" },
@@ -50,16 +52,20 @@ export default function WorkspacePage() {
     if (data) setProblemList(data);
   };
 
-  const switchProblem = (p: any) => {
-    const normalizedProblem = {
+  const normalizeProblem = (p: any) => {
+    return {
       ...p,
       testCases: p.testCases || p.test_cases || [],
       inputExample: p.inputExample || p.input_example || "",
       outputExample: p.outputExample || p.output_example || "",
     };
-    setProblem(normalizedProblem);
+  };
+
+  const switchProblem = (p: any) => {
+    const normalized = normalizeProblem(p);
+    setProblem(normalized);
     setProblemId(p.id);
-    sessionStorage.setItem("currentProblem", JSON.stringify(normalizedProblem));
+    sessionStorage.setItem("currentProblem", JSON.stringify(normalized));
     setIsMenuOpen(false);
     setSolutions(null);
     setExecutionResults([]);
@@ -75,17 +81,15 @@ export default function WorkspacePage() {
   };
 
   const handleDeleteProblem = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation(); // Prevent switching to the problem when clicking delete
+    e.stopPropagation();
     if (!confirm("Are you sure you want to delete this problem?")) return;
 
     try {
       const { error } = await supabase.from("problems").delete().eq("id", id);
       if (error) throw error;
       
-      // Update local state
       setProblemList(prev => prev.filter(p => p.id !== id));
       
-      // If the deleted problem was the current one, clear it
       if (id === problemId) {
         setProblem(null);
         setProblemId(null);
@@ -104,24 +108,20 @@ export default function WorkspacePage() {
     const stored = sessionStorage.getItem("currentProblem");
     if (stored) {
       const p = JSON.parse(stored);
-      setProblem(p);
+      const normalized = normalizeProblem(p);
+      setProblem(normalized);
       setProblemId(p.id);
       
-      // Load initial boilerplate
-      if (p.boilerplates && p.boilerplates[selectedLanguage]) {
-        setCode(p.boilerplates[selectedLanguage]);
-      } else if (p.boilerplates && p.boilerplates["javascript"]) {
-        setCode(p.boilerplates["javascript"]);
+      if (normalized.boilerplates && normalized.boilerplates[selectedLanguage]) {
+        setCode(normalized.boilerplates[selectedLanguage]);
       }
 
       const unlockAt = new Date(p.unlock_at || p.unlockAt).getTime();
       const now = new Date().getTime();
-      const diff = Math.max(0, Math.floor((unlockAt - now) / 1000));
-      setTimeLeft(diff);
+      setTimeLeft(Math.max(0, Math.floor((unlockAt - now) / 1000)));
     }
   }, []);
 
-  // Update code when language changes if it's still just the boilerplate
   useEffect(() => {
     if (problem?.boilerplates && problem.boilerplates[selectedLanguage]) {
       setCode(problem.boilerplates[selectedLanguage]);
@@ -145,9 +145,6 @@ export default function WorkspacePage() {
     }
   };
 
-  const [executionResults, setExecutionResults] = useState<any[]>([]);
-  const [isExecuting, setIsExecuting] = useState(false);
-
   const handleRunCode = async () => {
     if (!problem) return;
     setIsExecuting(true);
@@ -160,7 +157,7 @@ export default function WorkspacePage() {
         body: JSON.stringify({
           sourceCode: code,
           language: selectedLanguage,
-          testCases: problem.testCases || (problem as any).test_cases
+          testCases: problem.testCases
         }),
       });
       
@@ -244,13 +241,9 @@ export default function WorkspacePage() {
         )}
       </AnimatePresence>
 
-      {/* Header */}
       <header className="h-14 border-b border-zinc-800 flex items-center justify-between px-6 bg-zinc-950/50 backdrop-blur-xl">
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => setIsMenuOpen(true)}
-            className="p-2 hover:bg-zinc-800 rounded-lg transition-colors text-zinc-400"
-          >
+          <button onClick={() => setIsMenuOpen(true)} className="p-2 hover:bg-zinc-800 rounded-lg transition-colors text-zinc-400">
             <Menu size={20} />
           </button>
           <Link href="/" className="p-2 hover:bg-zinc-800 rounded-lg transition-colors text-zinc-400">
@@ -280,46 +273,27 @@ export default function WorkspacePage() {
         </div>
       </header>
 
-      {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel: Description */}
         <div className="w-1/3 border-r border-zinc-800 flex flex-col bg-zinc-950/20">
           <div className="flex border-b border-zinc-800">
-            <button 
-              onClick={() => setActiveTab("desc")}
-              className={`px-6 py-3 text-sm font-medium transition-colors ${activeTab === "desc" ? "text-blue-400 border-b-2 border-blue-400" : "text-zinc-500 hover:text-zinc-300"}`}
-            >
-              Description
-            </button>
-            <button 
-              onClick={() => setActiveTab("hints")}
-              className={`px-6 py-3 text-sm font-medium transition-colors ${activeTab === "hints" ? "text-blue-400 border-b-2 border-blue-400" : "text-zinc-500 hover:text-zinc-300"}`}
-            >
-              AI Hints
-            </button>
-            <button 
-              onClick={() => setActiveTab("results")}
-              className={`px-6 py-3 text-sm font-medium transition-colors ${activeTab === "results" ? "text-blue-400 border-b-2 border-blue-400" : "text-zinc-500 hover:text-zinc-300"}`}
-            >
-              Results
-            </button>
-            {solutions && (
-              <button 
-                onClick={() => setActiveTab("solutions")}
-                className={`px-6 py-3 text-sm font-medium transition-colors ${activeTab === "solutions" ? "text-blue-400 border-b-2 border-blue-400" : "text-zinc-500 hover:text-zinc-300"}`}
-              >
-                Solutions
-              </button>
-            )}
+            {["desc", "hints", "results", "solutions"].map((tab) => (
+              (tab !== "solutions" || solutions) && (
+                <button 
+                  key={tab}
+                  onClick={() => setActiveTab(tab as any)}
+                  className={`px-6 py-3 text-sm font-medium capitalize transition-colors ${activeTab === tab ? "text-blue-400 border-b-2 border-blue-400" : "text-zinc-500 hover:text-zinc-300"}`}
+                >
+                  {tab === "desc" ? "Description" : tab === "hints" ? "AI Hints" : tab}
+                </button>
+              )
+            ))}
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 space-y-8">
             {activeTab === "desc" ? (
               <>
                 <div className="prose prose-invert max-w-none">
-                  <p className="text-zinc-300 leading-relaxed whitespace-pre-wrap">
-                    {problem.description}
-                  </p>
+                  <p className="text-zinc-300 leading-relaxed whitespace-pre-wrap">{problem.description}</p>
                 </div>
 
                 <div className="space-y-4">
@@ -328,9 +302,7 @@ export default function WorkspacePage() {
                     Constraints
                   </h3>
                   <ul className="list-disc list-inside space-y-2 text-sm text-zinc-400">
-                    {problem.constraints.map((c, i) => (
-                      <li key={i}>{c}</li>
-                    ))}
+                    {problem.constraints.map((c, i) => <li key={i}>{c}</li>)}
                   </ul>
                 </div>
 
@@ -340,19 +312,9 @@ export default function WorkspacePage() {
                     Example
                   </h3>
                   <div className="bg-zinc-900 rounded-xl p-4 space-y-2 border border-zinc-800 font-mono text-sm">
-                    <div>
-                      <span className="text-zinc-500 font-bold">Input:</span> 
-                      <code className="ml-2 text-zinc-300">{problem.inputExample}</code>
-                    </div>
-                    <div>
-                      <span className="text-zinc-500 font-bold">Output:</span> 
-                      <code className="ml-2 text-zinc-300">{problem.outputExample}</code>
-                    </div>
-                    {problem.explanation && (
-                      <div className="mt-2 text-zinc-500 italic">
-                        // {problem.explanation}
-                      </div>
-                    )}
+                    <div><span className="text-zinc-500 font-bold">Input:</span> <code className="ml-2 text-zinc-300">{problem.inputExample}</code></div>
+                    <div><span className="text-zinc-500 font-bold">Output:</span> <code className="ml-2 text-zinc-300">{problem.outputExample}</code></div>
+                    {problem.explanation && <div className="mt-2 text-zinc-500 italic">// {problem.explanation}</div>}
                   </div>
                 </div>
               </>
@@ -388,7 +350,6 @@ export default function WorkspacePage() {
                              {res.isCorrect ? "PASSED" : "FAILED"}
                            </span>
                          </div>
-                         
                          <div className="text-xs space-y-2 font-mono">
                            <div className="bg-black/20 p-2 rounded border border-white/5">
                              <div className="text-zinc-600 mb-1">Input:</div>
@@ -401,17 +362,10 @@ export default function WorkspacePage() {
                              </div>
                              <div className="bg-black/20 p-2 rounded border border-white/5">
                                <div className="text-zinc-600 mb-1">Actual:</div>
-                               <div className={`font-bold ${res.isCorrect ? "text-emerald-400" : "text-rose-400"}`}>
-                                 {res.actual || "No Output"}
-                               </div>
+                               <div className={`font-bold ${res.isCorrect ? "text-emerald-400" : "text-rose-400"}`}>{res.actual || "No Output"}</div>
                              </div>
                            </div>
-                           {res.error && (
-                             <div className="text-rose-400 mt-2 bg-rose-500/10 p-2 rounded border border-rose-500/20">
-                               <div className="text-[10px] font-bold uppercase mb-1 opacity-50">Runtime Error:</div>
-                               {res.error}
-                             </div>
-                           )}
+                           {res.error && <div className="text-rose-400 mt-2 bg-rose-500/10 p-2 rounded border border-rose-500/20">{res.error}</div>}
                          </div>
                       </div>
                     ))}
@@ -427,41 +381,25 @@ export default function WorkspacePage() {
               <div className="flex flex-col items-center justify-center h-full text-center space-y-4 p-8">
                 <HelpCircle size={48} className="text-zinc-800" />
                 <h3 className="text-lg font-bold">Stuck?</h3>
-                <p className="text-zinc-500 text-sm">
-                  The AI is currently analyzing your approach. Hints will appear here as you code.
-                </p>
-                <button className="px-6 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-sm font-bold transition-all">
-                  Get a Hint
-                </button>
+                <p className="text-zinc-500 text-sm">AI hints will appear here as you code.</p>
+                <button className="px-6 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-sm font-bold transition-all">Get a Hint</button>
               </div>
             )}
           </div>
         </div>
 
-        {/* Center Panel: Editor */}
         <div className="flex-1 flex flex-col relative">
           <div className="h-10 border-b border-zinc-800 bg-zinc-950/50 flex items-center px-4 justify-between">
             <div className="flex items-center gap-4">
                <div className="relative">
-                  <button 
-                    onClick={() => setIsLangOpen(!isLangOpen)}
-                    className="text-xs font-mono text-zinc-400 hover:text-zinc-200 flex items-center gap-1 transition-colors"
-                  >
+                  <button onClick={() => setIsLangOpen(!isLangOpen)} className="text-xs font-mono text-zinc-400 hover:text-zinc-200 flex items-center gap-1 transition-colors">
                     {LANGUAGES_MAP.find(l => l.value === selectedLanguage)?.label}
                     <ChevronLeft size={10} className={`transform transition-transform ${isLangOpen ? "rotate-90" : "-rotate-90"}`} />
                   </button>
-                  
                   {isLangOpen && (
-                    <div className="absolute top-full left-0 mt-1 w-32 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl z-50 py-1 overflow-hidden">
+                    <div className="absolute top-full left-0 mt-1 w-32 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl z-50 py-1">
                       {LANGUAGES_MAP.map(lang => (
-                        <button
-                          key={lang.value}
-                          onClick={() => {
-                            setSelectedLanguage(lang.value);
-                            setIsLangOpen(false);
-                          }}
-                          className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${selectedLanguage === lang.value ? "bg-blue-500/10 text-blue-400" : "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"}`}
-                        >
+                        <button key={lang.value} onClick={() => { setSelectedLanguage(lang.value); setIsLangOpen(false); }} className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${selectedLanguage === lang.value ? "bg-blue-500/10 text-blue-400" : "text-zinc-500 hover:bg-zinc-800"}`}>
                           {lang.label}
                         </button>
                       ))}
@@ -469,65 +407,19 @@ export default function WorkspacePage() {
                   )}
                </div>
             </div>
-            <button 
-              onClick={handleRunCode}
-              disabled={isExecuting}
-              className="text-xs font-bold text-blue-500 flex items-center gap-1 hover:text-blue-400 transition-colors disabled:opacity-50"
-            >
-              <Play size={12} />
-              Run Code
+            <button onClick={handleRunCode} disabled={isExecuting} className="text-xs font-bold text-blue-500 flex items-center gap-1 hover:text-blue-400 transition-colors disabled:opacity-50">
+              <Play size={12} /> Run Code
             </button>
           </div>
           <div className="flex-1">
-            <Editor
-              theme="leetai-theme"
-              language={selectedLanguage}
-              value={code}
-              onChange={(v) => setCode(v || "")}
-              options={{
-                minimap: { enabled: false },
-                fontSize: 14,
-                fontFamily: "'JetBrains Mono', monospace",
-                lineNumbers: "on",
-                roundedSelection: true,
-                scrollBeyondLastLine: false,
-                padding: { top: 20 },
-              }}
-              beforeMount={(monaco) => {
-                monaco.editor.defineTheme('leetai-theme', {
-                  base: 'vs-dark',
-                  inherit: true,
-                  rules: [],
-                  colors: {
-                    'editor.background': '#0a0a0a',
-                  }
-                });
-              }}
-            />
+            <Editor theme="leetai-theme" language={selectedLanguage} value={code} onChange={(v) => setCode(v || "")} options={{ minimap: { enabled: false }, fontSize: 14, fontFamily: "'JetBrains Mono', monospace", lineNumbers: "on", scrollBeyondLastLine: false, padding: { top: 20 } }} beforeMount={(monaco) => { monaco.editor.defineTheme('leetai-theme', { base: 'vs-dark', inherit: true, rules: [], colors: { 'editor.background': '#0a0a0a' } }); }} />
           </div>
 
-          {/* Solution Lock Overlay */}
           <div className="h-14 border-t border-zinc-800 bg-zinc-950 flex items-center px-6 justify-between">
-             <div className="flex items-center gap-2">
-                {isLocked ? (
-                  <div className="flex items-center gap-2 text-zinc-500 text-xs font-bold">
-                    <Lock size={14} />
-                    Solution locked for {formatTime(timeLeft)}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-emerald-500 text-xs font-bold">
-                    <Unlock size={14} />
-                    Solution available
-                  </div>
-                )}
+             <div className="flex items-center gap-2 text-xs font-bold">
+                {isLocked ? <><Lock size={14} className="text-zinc-500" /> <span className="text-zinc-500">Locked for {formatTime(timeLeft)}</span></> : <><Unlock size={14} className="text-emerald-500" /> <span className="text-emerald-500">Solution available</span></>}
              </div>
-             <button 
-                disabled={isLocked}
-                onClick={handleViewSolution}
-                className="px-6 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-bold transition-all"
-             >
-               View Optimal Solution
-             </button>
+             <button disabled={isLocked} onClick={handleViewSolution} className="px-6 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-sm font-bold transition-all">View Optimal Solution</button>
           </div>
         </div>
       </div>
