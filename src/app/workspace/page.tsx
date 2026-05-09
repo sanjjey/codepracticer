@@ -50,11 +50,16 @@ export default function WorkspacePage() {
   };
 
   const switchProblem = (p: any) => {
-    setProblem(p);
+    const normalizedProblem = {
+      ...p,
+      testCases: p.testCases || p.test_cases || [],
+      inputExample: p.inputExample || p.input_example || "",
+      outputExample: p.outputExample || p.output_example || "",
+    };
+    setProblem(normalizedProblem);
     setProblemId(p.id);
-    sessionStorage.setItem("currentProblem", JSON.stringify(p));
+    sessionStorage.setItem("currentProblem", JSON.stringify(normalizedProblem));
     setIsMenuOpen(false);
-    // Reset state
     setSolutions(null);
     setExecutionResults([]);
     setIsLocked(true);
@@ -341,7 +346,7 @@ export default function WorkspacePage() {
                 {isExecuting ? (
                   <div className="flex flex-col items-center justify-center py-20 space-y-4">
                     <Loader2 className="animate-spin text-blue-500" size={32} />
-                    <p className="text-sm text-zinc-500">Running code against {problem.testCases.length} test cases...</p>
+                    <p className="text-sm text-zinc-500">Running code against {problem.testCases?.length || 0} test cases...</p>
                   </div>
                 ) : executionResults.length > 0 ? (
                   <div className="space-y-4">
