@@ -16,7 +16,8 @@ import {
   Loader2,
   Menu,
   X,
-  Library
+  Library,
+  Trash2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Problem } from "@/lib/groq";
@@ -67,7 +68,27 @@ export default function WorkspacePage() {
     const unlockAt = new Date(p.unlock_at || p.unlockAt).getTime();
     const now = new Date().getTime();
     setTimeLeft(Math.max(0, Math.floor((unlockAt - now) / 1000)));
+  const handleDeleteProblem = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // Prevent switching to the problem when clicking delete
+    if (!confirm("Are you sure you want to delete this problem?")) return;
 
+    try {
+      const { error } = await supabase.from("problems").delete().eq("id", id);
+      if (error) throw error;
+      
+      // Update local state
+      setProblemList(prev => prev.filter(p => p.id !== id));
+      
+      // If the deleted problem was the current one, clear it
+      if (id === problemId) {
+        setProblem(null);
+        setProblemId(null);
+        sessionStorage.removeItem("currentProblem");
+      }
+    } catch (err) {
+      alert("Failed to delete problem.");
+    }
+  };
     if (p.boilerplates && p.boilerplates[selectedLanguage]) {
       setCode(p.boilerplates[selectedLanguage]);
     }
@@ -193,20 +214,27 @@ export default function WorkspacePage() {
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-2">
                 {problemList.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => switchProblem(p)}
-                    className={`w-full text-left p-4 rounded-xl border transition-all ${p.id === problemId ? "bg-blue-500/10 border-blue-500/50" : "bg-zinc-900/50 border-zinc-800 hover:border-zinc-700"}`}
-                  >
-                    <h3 className={`font-bold text-sm ${p.id === problemId ? "text-blue-400" : "text-zinc-200"}`}>{p.title}</h3>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
-                        p.difficulty === "Hard" ? "text-rose-500 bg-rose-500/10" :
-                        p.difficulty === "Medium" ? "text-amber-500 bg-amber-500/10" :
-                        "text-emerald-400 bg-emerald-400/10"
-                      }`}>{p.difficulty}</span>
-                    </div>
-                  </button>
+                  <div key={p.id} className="group relative">
+                    <button
+                      onClick={() => switchProblem(p)}
+                      className={`w-full text-left p-4 rounded-xl border transition-all ${p.id === problemId ? "bg-blue-500/10 border-blue-500/50" : "bg-zinc-900/50 border-zinc-800 hover:border-zinc-700"}`}
+                    >
+                      <h3 className={`font-bold text-sm pr-6 ${p.id === problemId ? "text-blue-400" : "text-zinc-200"}`}>{p.title}</h3>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
+                          p.difficulty === "Hard" ? "text-rose-500 bg-rose-500/10" :
+                          p.difficulty === "Medium" ? "text-amber-500 bg-amber-500/10" :
+                          "text-emerald-400 bg-emerald-400/10"
+                        }`}>{p.difficulty}</span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteProblem(e, p.id)}
+                      className="absolute top-4 right-4 p-1.5 text-zinc-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 ))}
               </div>
             </motion.div>
