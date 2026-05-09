@@ -347,19 +347,37 @@ export default function WorkspacePage() {
                   <div className="space-y-4">
                     {executionResults.map((res, i) => (
                       <div key={i} className={`p-4 rounded-xl border ${res.isCorrect ? "bg-emerald-500/5 border-emerald-500/20" : "bg-rose-500/5 border-rose-500/20"}`}>
-                         <div className="flex justify-between items-center mb-2">
+                         <div className="flex justify-between items-center mb-3">
                            <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">Test Case {i+1} {res.isEdgeCase && "(Edge Case)"}</span>
-                           <span className={`text-xs font-bold ${res.isCorrect ? "text-emerald-500" : "text-rose-500"}`}>
+                           <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${res.isCorrect ? "text-emerald-500 bg-emerald-500/10" : "text-rose-500 bg-rose-500/10"}`}>
                              {res.isCorrect ? "PASSED" : "FAILED"}
                            </span>
                          </div>
-                         {!res.isCorrect && (
-                           <div className="text-xs space-y-1 font-mono">
-                             <div className="text-zinc-500">Expected: <span className="text-zinc-300">{res.expected}</span></div>
-                             <div className="text-zinc-500">Actual: <span className="text-zinc-300">{res.actual || "No Output"}</span></div>
-                             {res.error && <div className="text-rose-400 mt-2 bg-rose-500/10 p-2 rounded">{res.error}</div>}
+                         
+                         <div className="text-xs space-y-2 font-mono">
+                           <div className="bg-black/20 p-2 rounded border border-white/5">
+                             <div className="text-zinc-600 mb-1">Input:</div>
+                             <div className="text-zinc-300">{res.input}</div>
                            </div>
-                         )}
+                           <div className="grid grid-cols-2 gap-2">
+                             <div className="bg-black/20 p-2 rounded border border-white/5">
+                               <div className="text-zinc-600 mb-1">Expected:</div>
+                               <div className="text-zinc-300">{res.expected}</div>
+                             </div>
+                             <div className="bg-black/20 p-2 rounded border border-white/5">
+                               <div className="text-zinc-600 mb-1">Actual:</div>
+                               <div className={`font-bold ${res.isCorrect ? "text-emerald-400" : "text-rose-400"}`}>
+                                 {res.actual || "No Output"}
+                               </div>
+                             </div>
+                           </div>
+                           {res.error && (
+                             <div className="text-rose-400 mt-2 bg-rose-500/10 p-2 rounded border border-rose-500/20">
+                               <div className="text-[10px] font-bold uppercase mb-1 opacity-50">Runtime Error:</div>
+                               {res.error}
+                             </div>
+                           )}
+                         </div>
                       </div>
                     ))}
                   </div>
