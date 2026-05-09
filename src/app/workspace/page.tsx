@@ -68,6 +68,12 @@ export default function WorkspacePage() {
     const unlockAt = new Date(p.unlock_at || p.unlockAt).getTime();
     const now = new Date().getTime();
     setTimeLeft(Math.max(0, Math.floor((unlockAt - now) / 1000)));
+
+    if (p.boilerplates && p.boilerplates[selectedLanguage]) {
+      setCode(p.boilerplates[selectedLanguage]);
+    }
+  };
+
   const handleDeleteProblem = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation(); // Prevent switching to the problem when clicking delete
     if (!confirm("Are you sure you want to delete this problem?")) return;
@@ -87,10 +93,6 @@ export default function WorkspacePage() {
       }
     } catch (err) {
       alert("Failed to delete problem.");
-    }
-  };
-    if (p.boilerplates && p.boilerplates[selectedLanguage]) {
-      setCode(p.boilerplates[selectedLanguage]);
     }
   };
 
