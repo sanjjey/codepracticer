@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Brain, Sparkles, Loader2, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { apiFetch } from "@/lib/apiFetch";
 
 export default function UserQuestionsPage() {
   const [input, setInput] = useState("");
@@ -16,7 +17,7 @@ export default function UserQuestionsPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/generate-question", {
+      const response = await apiFetch("/api/generate-question", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ input, testCaseCount }),

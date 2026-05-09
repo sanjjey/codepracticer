@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Tags, Sparkles, Loader2, Target, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
+import { apiFetch } from "@/lib/apiFetch";
 
 const TAGS = [
   "Arrays", "Strings", "Hash Table", "Dynamic Programming", 
@@ -28,7 +29,7 @@ export default function TagBasedQuestionsPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/generate-question", {
+      const response = await apiFetch("/api/generate-question", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 

@@ -17,6 +17,8 @@ export const metadata: Metadata = {
   description: "Master DSA with AI-powered question generation, combination, and tag-based learning.",
 };
 
+import { Settings } from "@/components/Settings";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,6 +31,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[#0a0a0a] text-zinc-100 font-sans">
         {children}
+        <Settings />
       </body>
     </html>
   );

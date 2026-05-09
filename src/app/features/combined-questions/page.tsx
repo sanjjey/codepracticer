@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Combine, Sparkles, Loader2, Link2, Plus } from "lucide-react";
 import { motion } from "framer-motion";
+import { apiFetch } from "@/lib/apiFetch";
 
 export default function CombinedQuestionsPage() {
   const [questions, setQuestions] = useState(["", ""]);
@@ -18,7 +19,7 @@ export default function CombinedQuestionsPage() {
 
     try {
       // We use the same generation endpoint but with a different prompt type
-      const response = await fetch("/api/generate-question", {
+      const response = await apiFetch("/api/generate-question", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
