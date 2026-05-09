@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 
-import { executeCode } from "@/lib/judge0";
+import { executeCodePiston } from "@/lib/piston";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,44 +11,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing source code or test cases" }, { status: 400 });
     }
 
-    const userJudge0Key = req.headers.get("x-user-judge0-key") || undefined;
-
     const results = [];
-    const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
-    for (let i = 0; i < testCases.length; i++) {
-      const testCase = testCases[i];
-      if (i > 0) await delay(1200); // Respect Judge0 RapidAPI rate limit (1 req/sec)
-      
+    // Piston is more lenient with rate limits, but we'll still run them sequentially
+    // to ensure clear output and avoid overloading the public instance.
+    for (const testCase of testCases) {
       try {
-        const result = await executeCode(sourceCode, language, testCase.input, userJudge0Key);
+        const result = await executeCodePiston(sourceCode, language, testCase.input);
         
-        // Judge0 status id 3 is "Accepted"
-        const isCompilationError = result.status.id === 6;
-        const isRuntimeError = result.status.id >= 7 && result.status.id <= 12;
+        const stdout = result.run.stdout || "";
+        const stderr = result.run.stderr || "";
+        const isRuntimeError = result.run.code !== 0 || stderr.length > 0;
         
-        const stdout = result.stdout || "";
-        const isCorrect = !isCompilationError && !isRuntimeError && stdout.trim() === testCase.expectedOutput?.trim();
+        const isCorrect = !isRuntimeError && stdout.trim() === testCase.expectedOutput?.trim();
         
-        if (isCompilationError) {
+        if (isRuntimeError) {
           results.push({
             input: testCase.input,
             expected: testCase.expectedOutput,
-            actual: null,
+            actual: stdout,
             status: "Error",
             isCorrect: false,
             isEdgeCase: testCase.isEdgeCase,
-            error: result.compile_output || result.message
-          });
-        } else if (isRuntimeError) {
-          results.push({
-            input: testCase.input,
-            expected: testCase.expectedOutput,
-            actual: result.stdout,
-            status: "Error",
-            isCorrect: false,
-            isEdgeCase: testCase.isEdgeCase,
-            error: result.stderr || result.message
+            error: stderr || "Runtime Error"
           });
         } else {
           results.push({
@@ -79,3 +64,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
