@@ -38,6 +38,8 @@ export default function WorkspacePage() {
   const [problemList, setProblemList] = useState<any[]>([]);
   const [executionResults, setExecutionResults] = useState<any[]>([]);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [hint, setHint] = useState<string | null>(null);
+  const [isGettingHint, setIsGettingHint] = useState(false);
 
   const LANGUAGES_MAP = [
     { label: "TypeScript", value: "typescript", monaco: "typescript" },
@@ -126,7 +128,52 @@ export default function WorkspacePage() {
     if (problem?.boilerplates && problem.boilerplates[selectedLanguage]) {
       setCode(problem.boilerplates[selectedLanguage]);
     }
+    setHint(null); // Reset hint when problem/language changes
   }, [selectedLanguage, problem]);
+
+  // Timer logic
+  useEffect(() => {
+    if (timeLeft <= 0) {
+      setIsLocked(false);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          setIsLocked(false);
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeLeft]);
+
+  const handleGetHint = async () => {
+    if (!problem) return;
+    setIsGettingHint(true);
+    try {
+      const response = await apiFetch("/api/get-hint", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          problemDescription: problem.description,
+          currentCode: code,
+          language: selectedLanguage
+        }),
+      });
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      setHint(data.hint);
+    } catch (err) {
+      alert("Failed to get hint.");
+    } finally {
+      setIsGettingHint(false);
+    }
+  };
 
   const handleViewSolution = async () => {
     if (isLocked) return;
@@ -379,10 +426,25 @@ export default function WorkspacePage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center space-y-4 p-8">
-                <HelpCircle size={48} className="text-zinc-800" />
+                <HelpCircle size={48} className={isGettingHint ? "text-blue-500 animate-pulse" : "text-zinc-800"} />
                 <h3 className="text-lg font-bold">Stuck?</h3>
-                <p className="text-zinc-500 text-sm">AI hints will appear here as you code.</p>
-                <button className="px-6 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-sm font-bold transition-all">Get a Hint</button>
+                {hint ? (
+                  <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl text-left">
+                    <p className="text-blue-200 text-sm italic">"{hint}"</p>
+                  </div>
+                ) : (
+                  <p className="text-zinc-500 text-sm">
+                    {isGettingHint ? "AI is thinking..." : "The AI coach can analyze your code and give you a nudge in the right direction."}
+                  </p>
+                )}
+                <button 
+                  onClick={handleGetHint}
+                  disabled={isGettingHint}
+                  className="px-6 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 rounded-xl text-sm font-bold transition-all flex items-center gap-2"
+                >
+                  {isGettingHint && <Loader2 size={14} className="animate-spin" />}
+                  {hint ? "Get Another Hint" : "Get a Hint"}
+                </button>
               </div>
             )}
           </div>
